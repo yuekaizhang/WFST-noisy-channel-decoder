@@ -1,0 +1,22 @@
+Zero = "0";
+One = "1";
+
+Bit = "0" | "1";
+Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+export Cross = "a" (("b":"x")* | ("c"+ : "y"*) | ("":"fric")) "a";
+
+evenBit = (Bit Bit)*;
+oddBit = Bit evenBit*;
+
+export BitFlip1 =Optimize[(("1":"0")|("0":"1"))*];
+export BitFlip2 = CDRewrite[BitFlip1,"","",Digit*];
+
+export Parity1 = Optimize[((Bit* : "") ((Zero :"0") | (One:"1")))];
+export Parity2 = Optimize[Reverse[((Zero :"0") | (One:"1")) (Bit* : "")]];
+#export Parity3 = CDRewrite[(Parity1 | ("":"0")), "[BOS]", "[EOS]", Bit* ];
+export Parity3 = CDRewrite[Bit*:"", "[BOS]", (Bit "[EOS]"), Bit*];
+export UnParity = Invert[Parity3];
+
+export Split = CDRewrite["":" ", Bit, Bit, Bit*, 'sim', 'opt'];
+export AcceptThree = Optimize[Bit* " " Bit* " " Bit*];
+export SplitThree = Split@AcceptThree;

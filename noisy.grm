@@ -1,0 +1,43 @@
+import 'byte.grm' as bytelib;        # load a simple grammar (.grm)
+
+ByteSigma = (bytelib.kSpace | bytelib.kGraph);  # printable characters
+ByteSigmaStar = Optimize[ByteSigma*];
+export LM = LoadFst['entrain.fst'];  # load trigram language model (.fst)
+vocab = SymbolTable['entrain.sym'];  # load model's symbol table (.sym)
+
+# YOU WILL FILL IN THE REST
+export RandomChar = bytelib.kGraph <4.54>;
+export RandomWord = Optimize[(RandomChar (RandomChar <0.1>)* ) <2.3>];
+
+SpellOOV = "<unk>".vocab : RandomWord;
+export Spell = Optimize[StringFile['entrain.alpha', vocab, byte]] | SpellOOV;
+
+
+export complete_word = CDRewrite["":bytelib.kAlpha*, "", "[EOS]", ByteSigmaStar, 'sim', 'obl'];
+export word_byte = Project[Spell,'output'];
+export byte2vocab = Optimize[StringFile['entrain.alpha', byte, vocab]];
+export CompleteWord = Optimize[complete_word@word_byte@byte2vocab@LM];
+
+
+# a FSA only check last word's spell
+export str_byte = Optimize[(ByteSigma* " " word_byte)|word_byte];
+export str_vocab = Optimize[(byte2vocab (" ".byte:"".vocab))* byte2vocab];
+export str_vocab2byte =  (Spell ("".vocab : " ".byte))* Spell;
+
+export str_vocab2byte_inv = Optimize[Invert[str_vocab2byte]];
+
+
+export keep_last_word = Optimize[((ByteSigma*:"") (" ":"") word_byte)|word_byte];
+
+export DelSpaces = CDRewrite[" ":"", "", "", ByteSigmaStar, 'sim', 'obl'];
+export SpellText = (Spell ("".vocab : " ".byte))*;  # input  word_vocab seq, output word_byte seq with space
+#export Generate = Optimize[LM @ SpellText @ DelSpaces];
+
+
+export LM_inv = Invert[LM]; 
+export SpellText_inv = Optimize[Invert[SpellText]];
+export DelSpaces_inv = Optimize[Invert[DelSpaces]];
+
+export PrintText = (StringFile['entrain.alpha', vocab, byte] ("".vocab : " ".byte) | ("<unk>".vocab:"<unk>") ("".vocab : " ".byte))*;
+
+
